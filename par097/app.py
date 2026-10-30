@@ -1,3 +1,4 @@
+from huggingface_hub import hf_hub_download   # downloads a file from the Hugging Face Hub (already installed with gradio)
 import json                                  # read class_names.json
 import numpy as np                           # arrays, used to build the heatmap picture
 import torch                                 # main deep learning library
@@ -10,12 +11,15 @@ from matplotlib import colormaps             # color scale for the heatmap
 
 device = "cpu"                               # the app runs on the CPU, which is fast enough for one image
 
-with open("class_names.json") as f:          # open the file saved by train.py
-    class_names = json.load(f)               # list: glioma, meningioma, notumor, pituitary
+REPO = "santaparvin/brain-mri-resnet18"                    # your model repository on Hugging Face
+names_path = hf_hub_download(REPO, "class_names.json")     # downloads the file once and keeps a local copy
+weights_path = hf_hub_download(REPO, "model.pth")          # same for the trained weights
+with open(names_path) as f:                                # open the downloaded class names
+    class_names = json.load(f)                             # list: glioma, meningioma, notumor, pituitary
 
 model = models.resnet18(weights=None)                                  # ResNet-18 structure only, no download needed
 model.fc = nn.Linear(model.fc.in_features, len(class_names))           # same final layer as in training (4 classes)
-model.load_state_dict(torch.load("model.pth", map_location=device))    # load YOUR trained weights
+model.load_state_dict(torch.load(weights_path, map_location=device))  # load YOUR trained weights from the downloaded file
 model.eval()                                                           # evaluation mode: no augmentation/dropout behavior
 
 tf = transforms.Compose([                                              # same preprocessing as eval_tf in train.py
